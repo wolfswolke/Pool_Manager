@@ -1,0 +1,9 @@
+/config/Name_config.yml
+/test/*
+/.idea/
+/logs/
+/doc/
+*.zip
+*.log
+*__pycache__
+/temp/*
