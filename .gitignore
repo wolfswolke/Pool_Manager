@@ -1,9 +1,5 @@
-/config/Name_config.yml
-/test/*
-/.idea/
+/config/poolmanager.yml
 /logs/
-/doc/
-*.zip
-*.log
-*__pycache__
-/temp/*
+.idea/
+/test/
+/src/Pool_DB
