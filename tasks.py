@@ -1,25 +1,25 @@
-""" 
+"""
 
 """
 # ------------------------------------------------------- #
 #                     imports
 # ------------------------------------------------------- #
+import os
+import shutil
+import webbrowser
+
 from invoke import task
 
 # ------------------------------------------------------- #
 #                   definitions
 # ------------------------------------------------------- #
-VIRTUALENV_NAME = "py39-system"
-
-DOCKER_REGISTRY = "IP:PORT"
-DOCKER_IMAGE_NAME = "name"
-TAG = "registry:2"
-
-
-ARCHIVE_NAME = "System"
+ARCHIVE_NAME = "PoolManager"
 DEVELOP_APP_VERSION = "v99-99-99"
-CONFIG_FILE_NAME = "config_name"
-EXECUTABLE_NAME = "exe_name"
+CONFIG_FILE_NAME = "poolmanager"
+EXECUTABLE_NAME = "PoolManager"
+
+VIRTUALENV_NAME = "py39_PoolManager"
+
 OPEN_IN_NEW_TAB = 2
 
 # ------------------------------------------------------- #
@@ -51,65 +51,15 @@ def remove_temporary_folders():
 #                       tasks
 # ------------------------------------------------------- #
 @task
-def update_requirements(c):
-    with c.prefix("workon {}".format(VIRTUALENV_NAME)):
-        _update_requirements_txt(c)
-
-
-@task
-def encode_string(c, string):
-    with c.prefix("workon {}".format(VIRTUALENV_NAME)):
-        from gutils.authentication_handle import encode_string_info
-
-        encoded, result = encode_string_info(string)
-
-        if result:
-            print("could not encrypt string because -> {}".format(result))
-        else:
-            print("result -> {}".format(encoded))
-
-
-@task
-def docker_build(c, tag=""):
-    print("START building docker image")
-    c.run("docker build -t {img_name}{tag} .\\".format(img_name=DOCKER_IMAGE_NAME,
-                                                       tag=":" + tag if tag != "" else tag))
-    print("FINISHED building docker image")
-
-
-@task
-def docker_deployment(c, tag):
-    docker_build(c, tag)
-    docker_build(c)
-
-    print("create docker tag on image and prepare for upload")
-    if tag != "":
-        c.run("docker tag {img_name} {registry}/{img_name}:{tag}".format(registry=DOCKER_REGISTRY,
-                                                                         img_name=DOCKER_IMAGE_NAME,
-                                                                         tag=tag))
-
-    c.run("docker tag {img_name} {registry}/{img_name}".format(registry=DOCKER_REGISTRY,
-                                                               img_name=DOCKER_IMAGE_NAME))
-
-    print("going to UPLOAD image")
-    if tag != "":
-        c.run("docker push {registry}/{img_name}:{tag}".format(registry=DOCKER_REGISTRY,
-                                                               img_name=DOCKER_IMAGE_NAME,
-                                                               tag=tag))
-
-    c.run("docker push {registry}/{img_name}".format(registry=DOCKER_REGISTRY,
-                                                     img_name=DOCKER_IMAGE_NAME))
-
-    print("delete local image")
-    c.run("docker image remove {registry}/{img_name}{tag}".format(registry=DOCKER_REGISTRY,
-                                                                  img_name=DOCKER_IMAGE_NAME,
-                                                                  tag=":" + tag if tag != "" else tag))
-    print("hopefully DEPLOYED application")
-
-@task
 def create_image_resource(c):
     with c.prefix("workon {}".format(VIRTUALENV_NAME)):
         c.run("pyside2-rcc -o src\\gui\\res\\images.py graphics\\resource.qrc")
+
+
+@task
+def update_requirements(c):
+    with c.prefix("workon {}".format(VIRTUALENV_NAME)):
+        _update_requirements_txt(c)
 
 
 @task
@@ -124,12 +74,12 @@ def create_exe(c, version="v9-9-9"):
         print("finished!")
 
         print("-> start creating temporary folders and copy files")
-        for folder in ["temp", "temp/logs", "temp/config", "temp/graphics/",
+        for folder in ["temp", "temp/logs", "temp/config", "temp/apps", "temp/graphics/",
                        "temp/graphics/rendered", "temp/graphics/rendered/general"]:
             os.mkdir(folder)
 
         shutil.copyfile("config/DEFAULT_{}.yml".format(CONFIG_FILE_NAME), "temp/config/{}.yml".format(CONFIG_FILE_NAME))
-        shutil.copytree("dist/start_app", "temp/apps")
+        shutil.copyfile("dist/{}.exe".format(EXECUTABLE_NAME), "temp/apps/{}.exe".format(EXECUTABLE_NAME))
 
         print("finished!")
         print("-> start creating .zip")
@@ -140,6 +90,20 @@ def create_exe(c, version="v9-9-9"):
         print("finished!")
         remove_temporary_folders()
         print("---------- FINISHED CREATING EXE ----------")
+
+
+@task
+def encode_string(c, string):
+    with c.prefix("workon {}".format(VIRTUALENV_NAME)):
+        from gutils.authentication_handle import encode_string_info
+
+        encoded, result = encode_string_info(string)
+
+        if result:
+            print("could not encrypt string because -> {}".format(result))
+        else:
+            print("result -> {}".format(encoded))
+
 
 @task
 def run_unittests(c):
@@ -173,5 +137,5 @@ def release(cmd, version):
             if exe_created:
                 cmd.run('git commit -am "minor -set app version to develop"')
                 print("going to push changes")
-                cmd.run("git push origin {}".format(version))
+                cmd.run("git push --follow-tags")
                 print("git push -> CHECK")
