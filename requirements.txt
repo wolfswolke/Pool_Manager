@@ -99,3 +99,4 @@ zipp==3.8.1
 
 -i https://pip.zkwolf.com/simple
 GUtils==1.7.0
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
